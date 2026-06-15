@@ -1,0 +1,38 @@
+{
+  "apiVersion": 2,
+  "name": "lightevents/events",
+  "title": "LightEvents - Liste d'événements",
+  "category": "widgets",
+  "icon": "tickets-alt",
+  "description": "Affiche les événements LightEvents en grille, liste, agenda, calendrier ou carte.",
+  "attributes": {
+    "view": {
+      "type": "string",
+      "default": "grid"
+    },
+    "country": {
+      "type": "string",
+      "default": ""
+    },
+    "city": {
+      "type": "string",
+      "default": ""
+    },
+    "category": {
+      "type": "string",
+      "default": ""
+    },
+    "organizer": {
+      "type": "string",
+      "default": ""
+    },
+    "limit": {
+      "type": "number",
+      "default": 12
+    }
+  },
+  "supports": {
+    "html": false
+  },
+  "editorScript": "file:./index.js"
+}

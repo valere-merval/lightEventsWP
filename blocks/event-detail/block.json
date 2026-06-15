@@ -1,0 +1,22 @@
+{
+  "apiVersion": 2,
+  "name": "lightevents/event-detail",
+  "title": "LightEvents - Détail événement",
+  "category": "widgets",
+  "icon": "calendar-alt",
+  "description": "Affiche un événement LightEvents avec réservation et paiement.",
+  "attributes": {
+    "id": {
+      "type": "number",
+      "default": 0
+    },
+    "checkout": {
+      "type": "string",
+      "default": "true"
+    }
+  },
+  "supports": {
+    "html": false
+  },
+  "editorScript": "file:./index.js"
+}
