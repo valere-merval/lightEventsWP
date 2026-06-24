@@ -99,6 +99,7 @@ class LightEvents_WP_Plugin {
         $buyer_email = sanitize_email(wp_unslash($_POST['buyerEmail'] ?? ''));
         $buyer_phone = sanitize_text_field(wp_unslash($_POST['buyerPhone'] ?? ''));
         $provider = sanitize_text_field(wp_unslash($_POST['provider'] ?? 'ORANGE_MONEY'));
+        $promo_code = sanitize_text_field(wp_unslash($_POST['promoCode'] ?? ''));
         $payment_otp = sanitize_text_field(wp_unslash($_POST['paymentOtp'] ?? ''));
 
         if (!$event_id || !$ticket_id || !$buyer_name || !$buyer_email) {
@@ -116,6 +117,7 @@ class LightEvents_WP_Plugin {
             'quantity' => $quantity,
             'holders' => [],
             'payNow' => $mode === 'pay',
+            'promoCode' => $promo_code ?: null,
         ]);
 
         if (is_wp_error($reservation)) {
@@ -127,7 +129,11 @@ class LightEvents_WP_Plugin {
         }
 
         $event = $this->api->event($event_id);
-        $amount = $this->ticket_amount(is_wp_error($event) ? [] : $event, $ticket_id, $quantity);
+        $amount = null;
+        if (is_array($reservation)) {
+            $amount = isset($reservation['reservation']['grossAmount']) ? (float) $reservation['reservation']['grossAmount'] : (isset($reservation['grossAmount']) ? (float) $reservation['grossAmount'] : null);
+        }
+        if ($amount === null) { $amount = $this->ticket_amount(is_wp_error($event) ? [] : $event, $ticket_id, $quantity); }
         $currency = $this->ticket_currency(is_wp_error($event) ? [] : $event, $ticket_id);
         if ($amount <= 0) {
             wp_send_json_success(['message' => __('Billet gratuit confirmé. Le ticket QR est envoyé par email.', 'lightevents'), 'reservation' => $reservation]);
