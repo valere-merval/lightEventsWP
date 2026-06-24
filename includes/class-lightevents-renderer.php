@@ -178,6 +178,7 @@ class LightEvents_WP_Renderer {
         $html .= '<label>' . esc_html__('Email', 'lightevents') . '<input name="buyerEmail" type="email" required></label>';
         $html .= '<label>' . esc_html__('Téléphone / WhatsApp', 'lightevents') . '<input name="buyerPhone" inputmode="tel"></label>';
         $html .= '<label>' . esc_html__('Paiement', 'lightevents') . '<select name="provider"><option value="ORANGE_MONEY">Orange Money</option><option value="MTN_MONEY">MTN MoMo</option><option value="WAVE">Wave</option><option value="AIRTEL_MONEY">Airtel Money</option><option value="MOOV_MONEY">Moov Money</option><option value="STRIPE">Carte bancaire</option><option value="PAYPAL">PayPal</option></select></label>';
+        $html .= '<label>' . esc_html__('OTP Orange Money si demandé', 'lightevents') . '<input name="paymentOtp" inputmode="numeric" maxlength="8" placeholder="123456"></label>';
         $html .= '<div class="lightevents-actions"><button class="lightevents-button secondary" type="submit" name="mode" value="reserve">' . esc_html__('Réserver', 'lightevents') . '</button><button class="lightevents-button" type="submit" name="mode" value="pay">' . esc_html__('Payer maintenant', 'lightevents') . '</button></div><div class="lightevents-form-message" aria-live="polite"></div></form>';
         return $html;
     }

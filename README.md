@@ -36,7 +36,8 @@ Voir la documentation fonctionnelle centrale dans le backend : `lightEventsBA/do
 - Détail événement dans WordPress ou redirection vers LightEvents.
 - Formulaire de réservation.
 - Envoi des tickets QR par email via le backend LightEvents après réservation/paiement.
-- Paiement depuis WordPress via Orange Money, MTN MoMo, Wave, Airtel Money, Moov Money, carte/Stripe et PayPal.
+- Paiement depuis WordPress via GetMiPay pour Orange Money, MTN MoMo, Wave, Airtel Money, Moov Money, plus carte/Stripe et PayPal.
+- Champ OTP pour les services Orange Money qui l’exigent.
 
 ## Roadmap proche
 

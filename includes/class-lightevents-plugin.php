@@ -99,6 +99,7 @@ class LightEvents_WP_Plugin {
         $buyer_email = sanitize_email(wp_unslash($_POST['buyerEmail'] ?? ''));
         $buyer_phone = sanitize_text_field(wp_unslash($_POST['buyerPhone'] ?? ''));
         $provider = sanitize_text_field(wp_unslash($_POST['provider'] ?? 'ORANGE_MONEY'));
+        $payment_otp = sanitize_text_field(wp_unslash($_POST['paymentOtp'] ?? ''));
 
         if (!$event_id || !$ticket_id || !$buyer_name || !$buyer_email) {
             wp_send_json_error(['message' => __('Merci de remplir les champs obligatoires.', 'lightevents')], 400);
@@ -139,6 +140,9 @@ class LightEvents_WP_Plugin {
             'amount' => $amount,
             'currency' => $currency,
             'payerPhone' => $buyer_phone,
+            'payerName' => $buyer_name,
+            'payerEmail' => $buyer_email,
+            'otp' => $payment_otp,
         ]);
 
         if (is_wp_error($checkout)) {
