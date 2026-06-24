@@ -2,6 +2,10 @@
 
 Plugin WordPress pour intégrer LightEvents comme Eventbrite, mais adapté Mobile Money, WhatsApp, LinkedIn, CRM et PME Afrique/diaspora.
 
+## Documentation
+
+Voir la documentation fonctionnelle centrale dans le backend : `lightEventsBA/docs/LIGHTEVENTS_GUIDE_FR.md`.
+
 ## Installation
 
 1. Copier le dossier `lightEventsWP` dans `wp-content/plugins/lightevents`.
@@ -31,6 +35,7 @@ Plugin WordPress pour intégrer LightEvents comme Eventbrite, mais adapté Mobil
 - Filtres pays, ville, catégorie, organisateur.
 - Détail événement dans WordPress ou redirection vers LightEvents.
 - Formulaire de réservation.
+- Envoi des tickets QR par email via le backend LightEvents après réservation/paiement.
 - Paiement depuis WordPress via Orange Money, MTN MoMo, Wave, Airtel Money, Moov Money, carte/Stripe et PayPal.
 
 ## Roadmap proche

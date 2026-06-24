@@ -163,7 +163,7 @@ class LightEvents_WP_Renderer {
             return '<div class="lightevents-empty">' . esc_html__('Billetterie bientôt disponible pour cet événement.', 'lightevents') . '</div>';
         }
 
-        $html = '<form class="lightevents-checkout" data-lightevents-checkout><h3>' . esc_html__('Réserver ou payer', 'lightevents') . '</h3>';
+        $html = '<form class="lightevents-checkout" data-lightevents-checkout><h3>' . esc_html__('Réserver ou payer', 'lightevents') . '</h3><p class="lightevents-note">' . esc_html__('Après réservation ou paiement, chaque détenteur reçoit son ticket avec QR Code par email. Ce QR Code est scannable avec l’app LightEvents Organizer au check-in.', 'lightevents') . '</p>';
         $html .= '<input type="hidden" name="action" value="lightevents_checkout"><input type="hidden" name="nonce" value="' . esc_attr(wp_create_nonce('lightevents_checkout')) . '"><input type="hidden" name="eventId" value="' . esc_attr((string) $event_id) . '">';
         $html .= '<label>' . esc_html__('Billet', 'lightevents') . '<select name="ticketTypeId" required>';
         foreach ($tickets as $ticket) {

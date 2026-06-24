@@ -122,14 +122,14 @@ class LightEvents_WP_Plugin {
         }
 
         if ($mode !== 'pay') {
-            wp_send_json_success(['message' => __('Réservation enregistrée. Vous recevrez la confirmation par email/WhatsApp.', 'lightevents'), 'reservation' => $reservation]);
+            wp_send_json_success(['message' => __('Réservation enregistrée. Les tickets QR sont envoyés par email et seront scannables avec l’app LightEvents Organizer.', 'lightevents'), 'reservation' => $reservation]);
         }
 
         $event = $this->api->event($event_id);
         $amount = $this->ticket_amount(is_wp_error($event) ? [] : $event, $ticket_id, $quantity);
         $currency = $this->ticket_currency(is_wp_error($event) ? [] : $event, $ticket_id);
         if ($amount <= 0) {
-            wp_send_json_success(['message' => __('Billet gratuit confirmé.', 'lightevents'), 'reservation' => $reservation]);
+            wp_send_json_success(['message' => __('Billet gratuit confirmé. Le ticket QR est envoyé par email.', 'lightevents'), 'reservation' => $reservation]);
         }
         $reference = is_array($reservation) ? ($reservation['reservation']['reference'] ?? $reservation['reference'] ?? null) : null;
         $checkout = $this->api->checkout([
@@ -145,7 +145,7 @@ class LightEvents_WP_Plugin {
             wp_send_json_error(['message' => $checkout->get_error_message(), 'reservation' => $reservation], 502);
         }
 
-        wp_send_json_success(['message' => __('Paiement initialisé.', 'lightevents'), 'reservation' => $reservation, 'checkout' => $checkout]);
+        wp_send_json_success(['message' => __('Paiement initialisé. Après confirmation, les tickets QR seront envoyés par email.', 'lightevents'), 'reservation' => $reservation, 'checkout' => $checkout]);
     }
 
     private function ticket_amount(array $event, int $ticket_id, int $quantity): float {
