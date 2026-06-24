@@ -138,6 +138,7 @@ class LightEvents_WP_Renderer {
         $html .= '<div class="lightevents-card-body">' . $this->date_badge($event);
         $html .= '<h3>' . esc_html($event['title'] ?? '') . '</h3>';
         $html .= '<p>' . esc_html($this->location($event)) . '</p>';
+        $html .= $this->ticket_prices($event);
         $html .= '<a class="lightevents-button" href="' . esc_url($this->event_url($event)) . '">' . esc_html__('Voir / réserver', 'lightevents') . '</a>';
         $html .= '</div></article>';
         return $html;
@@ -150,6 +151,8 @@ class LightEvents_WP_Renderer {
         $html .= '<div class="lightevents-detail-body">';
         $html .= $this->date_badge($event) . '<h2>' . esc_html($event['title'] ?? '') . '</h2>';
         $html .= '<p class="lightevents-meta">' . esc_html($this->location($event)) . '</p>';
+        $html .= $this->category_badges($event);
+        $html .= $this->ticket_prices($event);
         $html .= '<div class="lightevents-description">' . wp_kses_post(wpautop((string)($event['description'] ?? ''))) . '</div>';
         if ($show_checkout) { $html .= $this->checkout_form($event); }
         $html .= '</div></article>';
@@ -181,6 +184,29 @@ class LightEvents_WP_Renderer {
         $html .= '<label>' . esc_html__('OTP Orange Money si demandé', 'lightevents') . '<input name="paymentOtp" inputmode="numeric" maxlength="8" placeholder="123456"></label>';
         $html .= '<div class="lightevents-actions"><button class="lightevents-button secondary" type="submit" name="mode" value="reserve">' . esc_html__('Réserver', 'lightevents') . '</button><button class="lightevents-button" type="submit" name="mode" value="pay">' . esc_html__('Payer maintenant', 'lightevents') . '</button></div><div class="lightevents-form-message" aria-live="polite"></div></form>';
         return $html;
+    }
+
+
+    private function category_badges(array $event): string {
+        $raw = (string)($event['categories'] ?? ($event['category'] ?? ''));
+        $categories = array_filter(array_map('trim', explode(',', $raw)));
+        if (!$categories) { return ''; }
+        $html = '<div class="lightevents-categories">';
+        foreach ($categories as $category) { $html .= '<span>' . esc_html($category) . '</span>'; }
+        return $html . '</div>';
+    }
+
+    private function ticket_prices(array $event): string {
+        $tickets = is_array($event['tickets'] ?? null) ? $event['tickets'] : [];
+        if (!$tickets) { return '<p class="lightevents-prices">' . esc_html__('Prix à définir', 'lightevents') . '</p>'; }
+        $html = '<div class="lightevents-prices">';
+        foreach ($tickets as $ticket) {
+            $price = isset($ticket['price']) ? (float) $ticket['price'] : 0.0;
+            $currency = $ticket['currency'] ?? 'EUR';
+            $label = ($ticket['name'] ?? __('Billet', 'lightevents')) . ' · ' . ($price <= 0 ? __('Gratuit', 'lightevents') : number_format_i18n($price, 2) . ' ' . $currency);
+            $html .= '<span>' . esc_html($label) . '</span>';
+        }
+        return $html . '</div>';
     }
 
     private function date_badge(array $event): string {

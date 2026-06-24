@@ -1,6 +1,6 @@
 # LightEvents for WordPress
 
-Plugin WordPress pour intégrer LightEvents comme Eventbrite, mais adapté Mobile Money, WhatsApp, LinkedIn, CRM et PME Afrique/diaspora.
+Plugin WordPress pour intégrer LightEvents à un site existant, avec Mobile Money, WhatsApp, LinkedIn, CRM et PME Afrique/diaspora.
 
 ## Documentation
 
@@ -32,8 +32,9 @@ Voir la documentation fonctionnelle centrale dans le backend : `lightEventsBA/do
 
 - Lecture automatique des événements depuis l'API LightEvents.
 - Vues grille, liste/agenda, calendrier simple et carte préparée.
-- Filtres pays, ville, catégorie, organisateur.
+- Filtres pays, ville, catégorie, organisateur; la catégorie trouve aussi les événements multi-catégories.
 - Détail événement dans WordPress ou redirection vers LightEvents.
+- Affichage de toutes les options de billets et de leurs prix.
 - Formulaire de réservation.
 - Envoi des tickets QR par email via le backend LightEvents après réservation/paiement.
 - Paiement depuis WordPress via GetMiPay pour Orange Money, MTN MoMo, Wave, Airtel Money, Moov Money, plus carte/Stripe et PayPal.
