@@ -3,13 +3,13 @@ if (!defined('ABSPATH')) { exit; }
 
 class LightEvents_WP_API {
     public function api_base(): string {
-        $base = trim((string) get_option('lightevents_api_base', 'https://api.lightevents.app/api'));
-        return rtrim($base ?: 'https://api.lightevents.app/api', '/');
+        $base = trim((string) get_option('lightevents_api_base', 'https://lighteventstest.onrender.com/api'));
+        return rtrim($base ?: 'https://lighteventstest.onrender.com/api', '/');
     }
 
     public function platform_url(): string {
-        $url = trim((string) get_option('lightevents_platform_url', 'https://app.lightevents.app'));
-        return rtrim($url ?: 'https://app.lightevents.app', '/');
+        $url = trim((string) get_option('lightevents_platform_url', 'https://valere-merval.github.io/lightEventsFE'));
+        return rtrim($url ?: 'https://valere-merval.github.io/lightEventsFE', '/');
     }
 
     public function request(string $method, string $path, array $query = [], $body = null) {

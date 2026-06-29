@@ -21,8 +21,8 @@ Voir la documentation fonctionnelle centrale dans le backend : `lightEventsBA/do
 2. Activer **LightEvents for WordPress** depuis WordPress.
 3. Suivre le Wizard d'accueil.
 4. Configurer **LightEvents → Settings** :
-   - API LightEvents : `https://api.lightevents.app/api` ou votre API production.
-   - URL plateforme : `https://app.lightevents.app` ou votre frontend production.
+   - API LightEvents : `https://lighteventstest.onrender.com/api` ou votre API production.
+   - URL plateforme : `https://valere-merval.github.io/lightEventsFE` ou votre frontend production.
    - Token API organisateur LightEvents si nécessaire.
 5. Importer un événement ou synchroniser le catalogue dans **LightEvents → Import / Sync**.
 
