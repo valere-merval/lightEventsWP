@@ -3,13 +3,13 @@ if (!defined('ABSPATH')) { exit; }
 
 class LightEvents_WP_API {
     public function api_base(): string {
-        $base = trim((string) get_option('lightevents_api_base', 'http://localhost:8080/api'));
-        return rtrim($base ?: 'http://localhost:8080/api', '/');
+        $base = trim((string) get_option('lightevents_api_base', 'https://api.lightevents.app/api'));
+        return rtrim($base ?: 'https://api.lightevents.app/api', '/');
     }
 
     public function platform_url(): string {
-        $url = trim((string) get_option('lightevents_platform_url', 'http://localhost:5173'));
-        return rtrim($url ?: 'http://localhost:5173', '/');
+        $url = trim((string) get_option('lightevents_platform_url', 'https://app.lightevents.app'));
+        return rtrim($url ?: 'https://app.lightevents.app', '/');
     }
 
     public function request(string $method, string $path, array $query = [], $body = null) {
@@ -18,7 +18,7 @@ class LightEvents_WP_API {
             $url = add_query_arg(array_filter($query, static fn($v) => $v !== '' && $v !== null), $url);
         }
 
-        $headers = ['Accept' => 'application/json'];
+        $headers = ['Accept' => 'application/json', 'X-LightEvents-Source' => 'wordpress'];
         $token = trim((string) get_option('lightevents_api_token', ''));
         if ($token !== '') {
             $headers['X-LightEvents-Token'] = $token;
@@ -31,7 +31,8 @@ class LightEvents_WP_API {
             'method' => strtoupper($method),
             'headers' => $headers,
             'body' => $body === null ? null : wp_json_encode($body),
-            'timeout' => 15,
+            'timeout' => 20,
+            'redirection' => 3,
         ]);
 
         if (is_wp_error($response)) {
@@ -43,9 +44,11 @@ class LightEvents_WP_API {
         $data = json_decode($raw, true);
 
         if ($code < 200 || $code >= 300) {
-            return new WP_Error('lightevents_api_error', __('Erreur API LightEvents.', 'lightevents'), [
+            $message = is_array($data) ? ($data['message'] ?? $data['error'] ?? __('Erreur API LightEvents.', 'lightevents')) : __('Erreur API LightEvents.', 'lightevents');
+            return new WP_Error('lightevents_api_error', $message, [
                 'status' => $code,
                 'body' => $data ?: $raw,
+                'url' => $url,
             ]);
         }
 
@@ -62,6 +65,7 @@ class LightEvents_WP_API {
             'status' => $filters['status'] ?? null,
             'from' => $filters['from'] ?? null,
             'to' => $filters['to'] ?? null,
+            'upcomingOnly' => $filters['upcomingOnly'] ?? 'true',
         ]);
     }
 
