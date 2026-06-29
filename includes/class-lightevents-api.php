@@ -80,4 +80,24 @@ class LightEvents_WP_API {
     public function checkout(array $payload) {
         return $this->request('POST', '/payments/checkout', [], $payload);
     }
+
+    public function register_account(array $payload) {
+        return $this->request('POST', '/auth/register', [], $payload);
+    }
+
+    public function verify_account(string $email, string $code) {
+        return $this->request('POST', '/auth/verify', [], [
+            'channel' => 'email',
+            'destination' => $email,
+            'code' => $code,
+        ]);
+    }
+
+    public function request_login_code(string $email) {
+        return $this->request('POST', '/auth/login/request-code', [], ['email' => $email]);
+    }
+
+    public function verify_login(string $email, string $code) {
+        return $this->request('POST', '/auth/login/verify', [], ['email' => $email, 'code' => $code]);
+    }
 }

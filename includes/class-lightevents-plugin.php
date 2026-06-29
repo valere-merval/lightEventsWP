@@ -42,6 +42,11 @@ class LightEvents_WP_Plugin {
         add_action('admin_init', [$this, 'maybe_activation_redirect']);
         add_action('admin_post_lightevents_import_event', [$this, 'handle_import_event']);
         add_action('admin_post_lightevents_sync_events', [$this, 'handle_sync_events']);
+        add_action('admin_post_lightevents_register_account', [$this, 'handle_register_account']);
+        add_action('admin_post_lightevents_request_login_code', [$this, 'handle_request_login_code']);
+        add_action('admin_post_lightevents_verify_account', [$this, 'handle_verify_account']);
+        add_action('admin_post_lightevents_logout_account', [$this, 'handle_logout_account']);
+        add_action('current_screen', [$this, 'guard_event_editor']);
         add_action('lightevents_sync_cron', [$this, 'sync_events']);
         add_action('wp_ajax_lightevents_checkout', [$this, 'ajax_checkout']);
         add_action('wp_ajax_nopriv_lightevents_checkout', [$this, 'ajax_checkout']);
@@ -123,6 +128,7 @@ class LightEvents_WP_Plugin {
     public function admin_menu(): void {
         add_menu_page('LightEvents', 'LightEvents', 'manage_options', 'lightevents-dashboard', [$this, 'dashboard_page'], 'dashicons-calendar-alt', 26);
         add_submenu_page('lightevents-dashboard', __('Dashboard', 'lightevents'), __('Dashboard', 'lightevents'), 'manage_options', 'lightevents-dashboard', [$this, 'dashboard_page']);
+        add_submenu_page('lightevents-dashboard', __('Compte LightEvents', 'lightevents'), __('Compte / Connexion', 'lightevents'), 'manage_options', 'lightevents-account', [$this, 'account_page']);
         add_submenu_page('lightevents-dashboard', __('Events', 'lightevents'), __('LightEvents Events', 'lightevents'), 'edit_posts', 'edit.php?post_type=lightevents_event');
         add_submenu_page('lightevents-dashboard', __('Add New Event', 'lightevents'), __('Add New Event', 'lightevents'), 'edit_posts', 'post-new.php?post_type=lightevents_event');
         add_submenu_page('lightevents-dashboard', __('Event Categories', 'lightevents'), __('Event Categories', 'lightevents'), 'manage_categories', 'edit-tags.php?taxonomy=lightevents_category&post_type=lightevents_event');
@@ -169,19 +175,142 @@ class LightEvents_WP_Plugin {
                 <?php echo $this->metric(__('Paiements', 'lightevents'), '7', __('Orange, MTN, Wave, Airtel, Moov, Carte, PayPal', 'lightevents')); ?>
             </div>
             <div class="lightevents-admin-grid">
-                <div class="lightevents-admin-card"><h2><?php esc_html_e('Prochaines actions', 'lightevents'); ?></h2><ol><li><?php esc_html_e('Connecter l’API et le token organisateur.', 'lightevents'); ?></li><li><?php esc_html_e('Importer un événement ou synchroniser tout le catalogue.', 'lightevents'); ?></li><li><?php esc_html_e('Ajouter les shortcodes aux pages marketing.', 'lightevents'); ?></li></ol><p><a class="button button-primary" href="<?php echo esc_url(admin_url('admin.php?page=lightevents-import')); ?>"><?php esc_html_e('Importer maintenant', 'lightevents'); ?></a> <a class="button" href="<?php echo esc_url(admin_url('admin.php?page=lightevents-settings')); ?>"><?php esc_html_e('Réglages', 'lightevents'); ?></a></p></div>
+                <div class="lightevents-admin-card"><h2><?php esc_html_e('Prochaines actions', 'lightevents'); ?></h2><ol><li><?php esc_html_e('Créer un compte ou se connecter à LightEvents.', 'lightevents'); ?></li><li><?php esc_html_e('Importer un événement ou synchroniser tout le catalogue.', 'lightevents'); ?></li><li><?php esc_html_e('Ajouter les shortcodes aux pages marketing.', 'lightevents'); ?></li></ol><p><a class="button button-primary" href="<?php echo esc_url(admin_url('admin.php?page=lightevents-account')); ?>"><?php esc_html_e('Se connecter', 'lightevents'); ?></a> <a class="button" href="<?php echo esc_url(admin_url('admin.php?page=lightevents-import')); ?>"><?php esc_html_e('Importer maintenant', 'lightevents'); ?></a> <a class="button" href="<?php echo esc_url(admin_url('admin.php?page=lightevents-settings')); ?>"><?php esc_html_e('Réglages', 'lightevents'); ?></a></p></div>
                 <div class="lightevents-admin-card"><h2><?php esc_html_e('Business model LightEvents', 'lightevents'); ?></h2><p><?php esc_html_e('Le plugin met en avant la billetterie officielle LightEvents: frais transparents, QR Code par email, check-in mobile, réservations temporaires, promo codes et paiements africains + internationaux.', 'lightevents'); ?></p><div class="lightevents-admin-pills"><span>Mobile Money</span><span>QR Check-in</span><span>Promo codes</span><span>SEO WordPress</span></div></div>
             </div>
         </div>
         <?php
     }
 
+    public function account_page(): void {
+        $notice = sanitize_text_field(wp_unslash($_GET['lightevents_notice'] ?? ''));
+        $error = sanitize_text_field(wp_unslash($_GET['lightevents_error'] ?? ''));
+        $email = sanitize_email(wp_unslash($_GET['email'] ?? get_option('lightevents_account_email', '')));
+        $account = $this->current_lightevents_account();
+        ?>
+        <div class="wrap lightevents-admin-wrap">
+            <?php $this->admin_hero(__('Compte LightEvents', 'lightevents'), __('Connectez votre site WordPress à un compte LightEvents. La création, l’import et la synchronisation nécessitent une connexion validée par code email.', 'lightevents')); ?>
+            <?php if ($notice): ?><div class="notice notice-success is-dismissible"><p><?php echo esc_html($notice); ?></p></div><?php endif; ?>
+            <?php if ($error): ?><div class="notice notice-error is-dismissible"><p><?php echo esc_html($error); ?></p></div><?php endif; ?>
+            <?php if ($account): ?>
+                <div class="lightevents-admin-card lightevents-account-status">
+                    <h2><?php esc_html_e('Site connecté', 'lightevents'); ?></h2>
+                    <p><strong><?php echo esc_html($account['fullName'] ?: $account['email']); ?></strong><br><?php echo esc_html($account['email']); ?> · <?php echo esc_html($account['role']); ?></p>
+                    <p><?php esc_html_e('Vous pouvez maintenant importer, synchroniser et gérer les événements LightEvents depuis WordPress.', 'lightevents'); ?></p>
+                    <p><a class="button button-primary" href="<?php echo esc_url(admin_url('admin.php?page=lightevents-import')); ?>"><?php esc_html_e('Importer / synchroniser', 'lightevents'); ?></a></p>
+                    <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
+                        <input type="hidden" name="action" value="lightevents_logout_account">
+                        <?php wp_nonce_field('lightevents_logout_account'); ?>
+                        <?php submit_button(__('Déconnecter ce site', 'lightevents'), 'secondary', 'submit', false); ?>
+                    </form>
+                </div>
+            <?php else: ?>
+                <div class="lightevents-admin-grid">
+                    <form class="lightevents-admin-card" method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
+                        <h2><?php esc_html_e('Créer un compte organisateur', 'lightevents'); ?></h2>
+                        <input type="hidden" name="action" value="lightevents_register_account">
+                        <?php wp_nonce_field('lightevents_register_account'); ?>
+                        <label><?php esc_html_e('Nom complet', 'lightevents'); ?><input name="fullName" required></label>
+                        <label><?php esc_html_e('Email', 'lightevents'); ?><input name="email" type="email" value="<?php echo esc_attr($email); ?>" required></label>
+                        <label><?php esc_html_e('Téléphone', 'lightevents'); ?><input name="phone" placeholder="+225..."></label>
+                        <label><?php esc_html_e('Méthode de reversement', 'lightevents'); ?><select name="payoutMethod"><option value="PAYPAL">PayPal</option><option value="BANK_TRANSFER">Virement bancaire</option></select></label>
+                        <label><?php esc_html_e('Pays de reversement', 'lightevents'); ?><input name="payoutCountry" placeholder="Côte d’Ivoire, Allemagne..."></label>
+                        <label><?php esc_html_e('Nom du compte de reversement', 'lightevents'); ?><input name="payoutAccountName"></label>
+                        <label><?php esc_html_e('Email PayPal ou IBAN', 'lightevents'); ?><input name="payoutAccountRef"></label>
+                        <?php submit_button(__('Créer et recevoir le code', 'lightevents'), 'primary'); ?>
+                    </form>
+                    <div class="lightevents-admin-card">
+                        <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
+                            <h2><?php esc_html_e('Valider / se connecter', 'lightevents'); ?></h2>
+                            <input type="hidden" name="action" value="lightevents_verify_account">
+                            <?php wp_nonce_field('lightevents_verify_account'); ?>
+                            <label><?php esc_html_e('Email du compte', 'lightevents'); ?><input name="email" type="email" value="<?php echo esc_attr($email); ?>" required></label>
+                            <label><?php esc_html_e('Code reçu par email', 'lightevents'); ?><input name="code" inputmode="numeric" required></label>
+                            <?php submit_button(__('Valider et connecter WordPress', 'lightevents'), 'primary'); ?>
+                        </form>
+                        <hr>
+                        <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
+                            <h2><?php esc_html_e('J’ai déjà un compte', 'lightevents'); ?></h2>
+                            <input type="hidden" name="action" value="lightevents_request_login_code">
+                            <?php wp_nonce_field('lightevents_request_login_code'); ?>
+                            <label><?php esc_html_e('Email du compte', 'lightevents'); ?><input name="email" type="email" value="<?php echo esc_attr($email); ?>" required></label>
+                            <?php submit_button(__('Recevoir un code de connexion', 'lightevents'), 'secondary'); ?>
+                        </form>
+                    </div>
+                </div>
+            <?php endif; ?>
+        </div>
+        <?php
+    }
+
+    public function handle_register_account(): void {
+        if (!current_user_can('manage_options')) { wp_die(__('Unauthorized', 'lightevents')); }
+        check_admin_referer('lightevents_register_account');
+        $email = sanitize_email(wp_unslash($_POST['email'] ?? ''));
+        $response = $this->api->register_account([
+            'fullName' => sanitize_text_field(wp_unslash($_POST['fullName'] ?? '')),
+            'email' => $email,
+            'phone' => sanitize_text_field(wp_unslash($_POST['phone'] ?? '')),
+            'whatsappNumber' => sanitize_text_field(wp_unslash($_POST['phone'] ?? '')),
+            'role' => 'ORGANIZER',
+            'payoutMethod' => strtoupper(sanitize_text_field(wp_unslash($_POST['payoutMethod'] ?? 'PAYPAL'))),
+            'payoutCountry' => sanitize_text_field(wp_unslash($_POST['payoutCountry'] ?? '')),
+            'payoutAccountName' => sanitize_text_field(wp_unslash($_POST['payoutAccountName'] ?? '')),
+            'payoutAccountRef' => sanitize_text_field(wp_unslash($_POST['payoutAccountRef'] ?? '')),
+        ]);
+        if (is_wp_error($response)) { $this->redirect_account_error($response->get_error_message(), $email); }
+        $message = $response['message'] ?? __('Compte créé. Entrez le code reçu par email pour connecter WordPress.', 'lightevents');
+        if (!empty($response['codePreview'])) { $message .= ' ' . sprintf(__('Code de test: %s', 'lightevents'), $response['codePreview']); }
+        $this->redirect_account_notice($message, $email);
+    }
+
+    public function handle_request_login_code(): void {
+        if (!current_user_can('manage_options')) { wp_die(__('Unauthorized', 'lightevents')); }
+        check_admin_referer('lightevents_request_login_code');
+        $email = sanitize_email(wp_unslash($_POST['email'] ?? ''));
+        $response = $this->api->request_login_code($email);
+        if (is_wp_error($response)) { $this->redirect_account_error($response->get_error_message(), $email); }
+        $message = $response['message'] ?? __('Code de connexion envoyé.', 'lightevents');
+        if (!empty($response['codePreview'])) { $message .= ' ' . sprintf(__('Code de test: %s', 'lightevents'), $response['codePreview']); }
+        $this->redirect_account_notice($message, $email);
+    }
+
+    public function handle_verify_account(): void {
+        if (!current_user_can('manage_options')) { wp_die(__('Unauthorized', 'lightevents')); }
+        check_admin_referer('lightevents_verify_account');
+        $email = sanitize_email(wp_unslash($_POST['email'] ?? ''));
+        $code = sanitize_text_field(wp_unslash($_POST['code'] ?? ''));
+        $response = $this->api->verify_login($email, $code);
+        if (is_wp_error($response)) {
+            $response = $this->api->verify_account($email, $code);
+        }
+        if (is_wp_error($response)) { $this->redirect_account_error($response->get_error_message(), $email); }
+        $this->store_lightevents_account($response);
+        $this->redirect_account_notice(__('Connexion réussie. WordPress est connecté à LightEvents.', 'lightevents'), $email);
+    }
+
+    public function handle_logout_account(): void {
+        if (!current_user_can('manage_options')) { wp_die(__('Unauthorized', 'lightevents')); }
+        check_admin_referer('lightevents_logout_account');
+        delete_option('lightevents_api_token');
+        delete_option('lightevents_account_email');
+        delete_option('lightevents_account_name');
+        delete_option('lightevents_account_role');
+        delete_option('lightevents_account_verified');
+        $this->redirect_account_notice(__('Site déconnecté du compte LightEvents.', 'lightevents'));
+    }
+
     public function import_page(): void {
         $notice = sanitize_text_field($_GET['lightevents_notice'] ?? '');
+        $error = sanitize_text_field($_GET['lightevents_error'] ?? '');
         ?>
         <div class="wrap lightevents-admin-wrap">
             <?php $this->admin_hero(__('Import / Sync LightEvents', 'lightevents'), __('Importez un événement par ID ou URL, puis gardez WordPress synchronisé avec LightEvents.', 'lightevents')); ?>
             <?php if ($notice): ?><div class="notice notice-success is-dismissible"><p><?php echo esc_html($notice); ?></p></div><?php endif; ?>
+            <?php if ($error): ?><div class="notice notice-error is-dismissible"><p><?php echo esc_html($error); ?></p></div><?php endif; ?>
+            <?php if (!$this->is_lightevents_connected()): ?>
+                <?php $this->login_required_card(__('Connectez-vous avant d’importer ou synchroniser.', 'lightevents')); ?>
+            <?php return; endif; ?>
             <div class="lightevents-admin-grid">
                 <form class="lightevents-admin-card" method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
                     <h2><?php esc_html_e('Importer un événement', 'lightevents'); ?></h2>
@@ -212,7 +341,7 @@ class LightEvents_WP_Plugin {
                 <table class="form-table" role="presentation">
                     <tr><th scope="row"><label for="lightevents_api_base">API LightEvents</label></th><td><input class="regular-text" id="lightevents_api_base" name="lightevents_api_base" value="<?php echo esc_attr(get_option('lightevents_api_base', 'https://lighteventstest.onrender.com/api')); ?>" placeholder="https://lighteventstest.onrender.com/api"></td></tr>
                     <tr><th scope="row"><label for="lightevents_platform_url">URL plateforme</label></th><td><input class="regular-text" id="lightevents_platform_url" name="lightevents_platform_url" value="<?php echo esc_attr(get_option('lightevents_platform_url', 'https://valere-merval.github.io/lightEventsFE')); ?>" placeholder="https://valere-merval.github.io/lightEventsFE"></td></tr>
-                    <tr><th scope="row"><label for="lightevents_api_token">Token API / organisateur</label></th><td><input class="regular-text" id="lightevents_api_token" name="lightevents_api_token" value="<?php echo esc_attr(get_option('lightevents_api_token', '')); ?>" autocomplete="off"><p class="description">Utilisé pour les opérations privées. Ne mettez jamais un token GitHub ici.</p></td></tr>
+                    <tr><th scope="row"><label for="lightevents_api_token">Token API / organisateur</label></th><td><input class="regular-text" id="lightevents_api_token" name="lightevents_api_token" value="<?php echo esc_attr(get_option('lightevents_api_token', '')); ?>" autocomplete="off"><p class="description">Recommandé: utilisez la page Compte / Connexion pour obtenir ce token après validation email. Ne mettez jamais un token GitHub ici.</p></td></tr>
                     <tr><th scope="row"><label for="lightevents_event_page_id">Page détail WordPress</label></th><td><?php wp_dropdown_pages(['name' => 'lightevents_event_page_id', 'selected' => absint(get_option('lightevents_event_page_id', 0)), 'show_option_none' => '— Utiliser les posts importés ou rediriger vers LightEvents —']); ?><p class="description">Une page contenant [lightevents_event_from_query] peut servir de page détail dynamique.</p></td></tr>
                     <tr><th scope="row"><label for="lightevents_default_currency">Devise par défaut</label></th><td><input id="lightevents_default_currency" name="lightevents_default_currency" value="<?php echo esc_attr(get_option('lightevents_default_currency', 'XOF')); ?>"></td></tr>
                     <tr><th scope="row"><label for="lightevents_payment_methods">Méthodes de paiement</label></th><td><input class="regular-text" id="lightevents_payment_methods" name="lightevents_payment_methods" value="<?php echo esc_attr(get_option('lightevents_payment_methods', 'ORANGE_MONEY,MTN_MONEY,WAVE,AIRTEL_MONEY,MOOV_MONEY,STRIPE,PAYPAL')); ?>"></td></tr>
@@ -234,7 +363,7 @@ class LightEvents_WP_Plugin {
 
     public function wizard_page(): void {
         ?>
-        <div class="wrap lightevents-onboarding"><div class="lightevents-onboarding-panel"><a class="lightevents-close" href="<?php echo esc_url(admin_url('admin.php?page=lightevents-dashboard')); ?>">×</a><h1><?php esc_html_e('Bienvenue dans LightEvents', 'lightevents'); ?></h1><p><?php esc_html_e('Installez une billetterie type Eventbrite, optimisée pour l’Afrique et les organisateurs: import, Mobile Money, QR check-in, promo codes, réservations, SEO WordPress.', 'lightevents'); ?></p><div class="lightevents-onboarding-tiles"><a href="<?php echo esc_url(admin_url('admin.php?page=lightevents-settings')); ?>"><span class="dashicons dashicons-admin-settings"></span><strong>1. Connecter l’API</strong><small>URL API, plateforme, token organisateur</small></a><a href="<?php echo esc_url(admin_url('admin.php?page=lightevents-import')); ?>"><span class="dashicons dashicons-download"></span><strong>2. Importer / Sync</strong><small>Créer les pages événement WordPress</small></a><a href="<?php echo esc_url(admin_url('admin.php?page=lightevents-shortcodes')); ?>"><span class="dashicons dashicons-shortcode"></span><strong>3. Publier</strong><small>Grille, agenda, checkout</small></a></div><p><a class="button button-primary button-hero" href="<?php echo esc_url(admin_url('admin.php?page=lightevents-import')); ?>"><?php esc_html_e('Commencer', 'lightevents'); ?></a></p></div></div>
+        <div class="wrap lightevents-onboarding"><div class="lightevents-onboarding-panel"><a class="lightevents-close" href="<?php echo esc_url(admin_url('admin.php?page=lightevents-dashboard')); ?>">×</a><h1><?php esc_html_e('Bienvenue dans LightEvents', 'lightevents'); ?></h1><p><?php esc_html_e('Installez une billetterie type Eventbrite, optimisée pour l’Afrique et les organisateurs: import, Mobile Money, QR check-in, promo codes, réservations, SEO WordPress.', 'lightevents'); ?></p><div class="lightevents-onboarding-tiles"><a href="<?php echo esc_url(admin_url('admin.php?page=lightevents-account')); ?>"><span class="dashicons dashicons-admin-users"></span><strong>1. Compte LightEvents</strong><small>Créer un compte ou se connecter par code email</small></a><a href="<?php echo esc_url(admin_url('admin.php?page=lightevents-import')); ?>"><span class="dashicons dashicons-download"></span><strong>2. Importer / Sync</strong><small>Créer les pages événement WordPress</small></a><a href="<?php echo esc_url(admin_url('admin.php?page=lightevents-shortcodes')); ?>"><span class="dashicons dashicons-shortcode"></span><strong>3. Publier</strong><small>Grille, agenda, checkout</small></a></div><p><a class="button button-primary button-hero" href="<?php echo esc_url(admin_url('admin.php?page=lightevents-account')); ?>"><?php esc_html_e('Se connecter', 'lightevents'); ?></a></p></div></div>
         <?php
     }
 
@@ -242,9 +371,73 @@ class LightEvents_WP_Plugin {
         ?><div class="wrap lightevents-admin-wrap"><?php $this->admin_hero(__('Support & Help', 'lightevents'), __('Guide rapide pour une mise en production propre.', 'lightevents')); ?><div class="lightevents-admin-card"><h2>Checklist production</h2><ul><li>API HTTPS stable configurée.</li><li>Token organisateur LightEvents dans les réglages.</li><li>CORS backend autorise le domaine WordPress si checkout externe.</li><li>Emails transactionnels actifs pour QR tickets.</li><li>Moyens de paiement GetMiPay/Stripe/PayPal testés.</li></ul></div></div><?php
     }
 
+    private function current_lightevents_account(): ?array {
+        $token = trim((string) get_option('lightevents_api_token', ''));
+        $email = trim((string) get_option('lightevents_account_email', ''));
+        if ($token === '' || $email === '') { return null; }
+        return [
+            'email' => $email,
+            'fullName' => (string) get_option('lightevents_account_name', ''),
+            'role' => (string) get_option('lightevents_account_role', 'ORGANIZER'),
+            'verified' => (bool) get_option('lightevents_account_verified', false),
+        ];
+    }
+
+    private function is_lightevents_connected(): bool {
+        return $this->current_lightevents_account() !== null;
+    }
+
+    private function store_lightevents_account(array $account): void {
+        update_option('lightevents_api_token', sanitize_text_field((string)($account['apiToken'] ?? '')));
+        update_option('lightevents_account_email', sanitize_email((string)($account['email'] ?? '')));
+        update_option('lightevents_account_name', sanitize_text_field((string)($account['fullName'] ?? '')));
+        update_option('lightevents_account_role', sanitize_text_field((string)($account['role'] ?? 'ORGANIZER')));
+        update_option('lightevents_account_verified', !empty($account['verified']) ? '1' : '0');
+    }
+
+    private function login_required_card(string $message): void {
+        ?>
+        <div class="lightevents-admin-card lightevents-login-required">
+            <h2><?php esc_html_e('Connexion LightEvents requise', 'lightevents'); ?></h2>
+            <p><?php echo esc_html($message); ?></p>
+            <p><?php esc_html_e('Créez un compte LightEvents ou connectez-vous avec votre email. Après validation du code, WordPress recevra le token organisateur nécessaire aux actions privées.', 'lightevents'); ?></p>
+            <p><a class="button button-primary" href="<?php echo esc_url(admin_url('admin.php?page=lightevents-account')); ?>"><?php esc_html_e('Créer un compte / se connecter', 'lightevents'); ?></a></p>
+        </div>
+        <?php
+    }
+
+    private function require_lightevents_connection(string $page = 'lightevents-account'): void {
+        if ($this->is_lightevents_connected()) { return; }
+        wp_safe_redirect(add_query_arg('lightevents_error', __('Connectez-vous à LightEvents avant de continuer.', 'lightevents'), admin_url('admin.php?page=' . $page)));
+        exit;
+    }
+
+    public function guard_event_editor($screen): void {
+        if (!is_admin() || !$screen || ($screen->post_type ?? '') !== 'lightevents_event') { return; }
+        if (!in_array($screen->base ?? '', ['post', 'post-new'], true)) { return; }
+        if ($this->is_lightevents_connected()) { return; }
+        wp_safe_redirect(add_query_arg('lightevents_error', __('Connectez-vous à LightEvents avant de créer ou modifier un événement.', 'lightevents'), admin_url('admin.php?page=lightevents-account')));
+        exit;
+    }
+
+    private function redirect_account_notice(string $message, string $email = ''): void {
+        $args = ['lightevents_notice' => $message];
+        if ($email !== '') { $args['email'] = $email; }
+        wp_safe_redirect(add_query_arg($args, admin_url('admin.php?page=lightevents-account')));
+        exit;
+    }
+
+    private function redirect_account_error(string $message, string $email = ''): void {
+        $args = ['lightevents_error' => $message];
+        if ($email !== '') { $args['email'] = $email; }
+        wp_safe_redirect(add_query_arg($args, admin_url('admin.php?page=lightevents-account')));
+        exit;
+    }
+
     public function handle_import_event(): void {
         if (!current_user_can('manage_options')) { wp_die(__('Unauthorized', 'lightevents')); }
         check_admin_referer('lightevents_import_event');
+        $this->require_lightevents_connection('lightevents-import');
         $id = $this->extract_event_id(sanitize_text_field(wp_unslash($_POST['event_identifier'] ?? '')));
         $status = sanitize_key($_POST['post_status'] ?? get_option('lightevents_import_status', 'publish'));
         $event = $id ? $this->api->event($id) : new WP_Error('missing_id', __('ID événement invalide.', 'lightevents'));
@@ -257,6 +450,7 @@ class LightEvents_WP_Plugin {
     public function handle_sync_events(): void {
         if (!current_user_can('manage_options')) { wp_die(__('Unauthorized', 'lightevents')); }
         check_admin_referer('lightevents_sync_events');
+        $this->require_lightevents_connection('lightevents-import');
         $count = $this->sync_events();
         wp_safe_redirect(add_query_arg('lightevents_notice', rawurlencode(sprintf(__('%d événements synchronisés.', 'lightevents'), $count)), admin_url('admin.php?page=lightevents-import')));
         exit;
